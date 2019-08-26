@@ -1,0 +1,47 @@
+#!/bin/sh
+
+# Stop on errors
+set -e
+
+if [ $# -eq 0 ]
+  then
+    echo "Specify the singularity version to download and install"
+    echo "Eg: ./install_singularity 3.3.0"
+    exit 1
+fi
+
+VERSION=$1
+
+sudo apt update && sudo apt install -y \
+    build-essential \
+    libssl-dev \
+    uuid-dev \
+    libgpgme11-dev \
+    squashfs-tools \
+    libseccomp-dev \
+    wget \
+    pkg-config \
+    git
+
+sudo add-apt-repository ppa:longsleep/golang-backports
+sudo apt install golang-go
+
+sudo rm -f /usr/bin/singularity
+sudo rm -f /usr/bin/run-singularity
+sudo rm -rf /opt/singularity
+sudo mkdir /opt/singularity
+
+wget https://github.com/sylabs/singularity/releases/download/v${VERSION}/singularity-${VERSION}.tar.gz && \
+  tar -xzf singularity-${VERSION}.tar.gz && \
+  cd singularity || exit 1
+
+./mconfig --prefix=/opt/singularity && \
+  make -C ./builddir && \
+  sudo make -C ./builddir install
+
+sudo ln -s /opt/singularity/bin/singularity /usr/bin/singularity
+sudo ln -s /opt/singularity/bin/run-singularity /usr/bin/run-singularity
+
+singularity run library://sylabsed/examples/lolcow
+
+echo "Successfully installed singularity version $VERSION"
